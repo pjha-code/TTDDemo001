@@ -1,0 +1,21 @@
+{
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Launch Demo002Application",
+            "request": "launch",
+            "mainClass": "com.ttd.demo002.Demo002Application",
+            "projectName": ""
+        },
+        {
+            "type": "java",
+            "name": "Spring Boot-Demo001Application<demo001>",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "console": "internalConsole",
+            "mainClass": "com.ttd.demo001.Demo001Application",
+            "projectName": "demo001",
+            "args": ""
+        }
+    ]
+}
