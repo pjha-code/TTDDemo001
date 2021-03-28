@@ -10,7 +10,6 @@ public class Demo001Application {
 	public static void main(String[] args) {
 		SpringApplication.run(Demo001Application.class, args);
 		// some comment
-		// some more comment
 	}
 
 }
