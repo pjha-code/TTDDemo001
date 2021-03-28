@@ -8,7 +8,7 @@ public class FirstController {
     
     @GetMapping("/get")
     public String get(){
-        return "get call response";
+        return "get call response message";
     }
 
 }
