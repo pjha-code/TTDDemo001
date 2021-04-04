@@ -1,0 +1,5 @@
+heroku git:remote -a <heroku app name>
+
+git push heroku <branch>
+
+git open 
