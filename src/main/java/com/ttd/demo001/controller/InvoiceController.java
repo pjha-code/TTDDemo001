@@ -1,6 +1,8 @@
 package com.ttd.demo001.controller;
 
 import java.net.HttpURLConnection;
+import java.util.Date;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -25,6 +27,11 @@ public class InvoiceController {
 
 	@Autowired
 	private InvoiceService invoiceService;
+
+	@GetMapping("/test")
+	public String test() {
+		return "success : " + new Date();
+	}
 
 	@GetMapping("/getAll")
 	public String getAll() {
