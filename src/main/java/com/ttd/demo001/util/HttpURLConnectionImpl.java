@@ -37,7 +37,7 @@ public class HttpURLConnectionImpl implements HttpURLConnection {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-
+		System.out.println(conn.getURL());
 		return conn;
 	}
 

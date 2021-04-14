@@ -1,9 +1,13 @@
 package com.ttd.demo001.service;
 
-import java.net.HttpURLConnection;
+import java.util.Map;
 
 public interface InvoiceService {
-	abstract public String getResponsePayload(HttpURLConnection conn);
+	public String updateInvoice(Map<Integer, String> records);
 
-	abstract public String setRequestPayloadForResponse(String requestPayload, HttpURLConnection conn);
+	public String getAllInvoices();
+
+	public String getSingleInvoice(String invoiceNumber);
+
+	public String validateInvoice(String requestObject);
 }

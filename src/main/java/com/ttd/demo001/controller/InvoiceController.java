@@ -1,19 +1,26 @@
 package com.ttd.demo001.controller;
 
-import java.net.HttpURLConnection;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.ttd.demo001.service.InvoiceService;
-import com.ttd.demo001.util.HTTPMethods;
 
 @RestController
 @RequestMapping("/invoice")
@@ -21,36 +28,53 @@ public class InvoiceController {
 
 	@Value("${resource_url}")
 	private String resourceUrl;
-
-	@Autowired
-	private com.ttd.demo001.util.HttpURLConnection conn;
-
 	@Autowired
 	private InvoiceService invoiceService;
 
-	@GetMapping("/test")
-	public String test() {
-		return "success : " + new Date();
+	@CrossOrigin
+	@PostMapping("/updateInvoice")
+	public String updateInvoice(@RequestParam("file") MultipartFile file) {
+
+		String[] filenameParts = file.getOriginalFilename().split("\\.");
+		String fileType = filenameParts[filenameParts.length - 1].toUpperCase();
+
+		Map<Integer, String> records = new HashMap<>();
+
+		if ("CSV".equals(fileType)) {
+			try {
+				InputStream stream = file.getInputStream();
+				InputStreamReader reader = new InputStreamReader(stream);
+				BufferedReader buffReader = new BufferedReader(reader);
+
+				int keyCount = 0;
+				while (buffReader.ready()) {
+					String record = buffReader.readLine();
+
+					records.put(keyCount++, record);
+				}
+				invoiceService.updateInvoice(records);
+
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+
+		return "processed : " + new Date();
 	}
 
 	@GetMapping("/getAll")
 	public String getAll() {
-		HttpURLConnection conn1 = conn.getConnection(HTTPMethods.HTTP_GET, resourceUrl);
-		return invoiceService.getResponsePayload(conn1);
+		return invoiceService.getAllInvoices();
 	}
 
-	@GetMapping("/getInvoice/{invoiceId}")
-	public String get(@PathVariable(required = true) String invoiceId) {
-		String updatedResourceURL = resourceUrl + "/" + invoiceId;
-		HttpURLConnection conn1 = conn.getConnection(HTTPMethods.HTTP_GET, updatedResourceURL);
-		return invoiceService.getResponsePayload(conn1);
+	@GetMapping("/getInvoice/{invoiceNumber}")
+	public String get(@PathVariable(required = true) String invoiceNumber) {
+		return invoiceService.getSingleInvoice(invoiceNumber);
 	}
 
 	@PostMapping(path = "/validateInvoice", consumes = "application/json", produces = { "application/json" })
 	public String validate(@RequestBody String payload) {
-
-		HttpURLConnection conn1 = conn.getConnection(HTTPMethods.HTTP_POST, resourceUrl);
-		return invoiceService.setRequestPayloadForResponse(payload, conn1);
+		return invoiceService.validateInvoice(payload);
 	}
 
 }
