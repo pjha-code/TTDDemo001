@@ -1,13 +1,16 @@
 package com.ttd.demo001.service;
 
+import java.util.List;
 import java.util.Map;
 
+import org.json.simple.JSONObject;
+
 public interface InvoiceService {
-	public String updateInvoice(Map<Integer, String> records);
+	public JSONObject updateInvoice(Map<Integer, String> records);
 
-	public String getAllInvoices();
+	public List<Map<String, String>> getAllInvoices();
 
-	public String getSingleInvoice(String invoiceNumber);
+	public JSONObject getSingleInvoice(String invoiceNumber);
 
 	public String validateInvoice(String requestObject);
 }

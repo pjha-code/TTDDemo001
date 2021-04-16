@@ -6,8 +6,10 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
+import org.json.simple.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -24,6 +26,7 @@ import com.ttd.demo001.service.InvoiceService;
 
 @RestController
 @RequestMapping("/invoice")
+@CrossOrigin
 public class InvoiceController {
 
 	@Value("${resource_url}")
@@ -31,10 +34,10 @@ public class InvoiceController {
 	@Autowired
 	private InvoiceService invoiceService;
 
-	@CrossOrigin
 	@PostMapping("/updateInvoice")
-	public String updateInvoice(@RequestParam("file") MultipartFile file) {
+	public JSONObject updateInvoice(@RequestParam("file") MultipartFile file) {
 
+		JSONObject resp = null;
 		String[] filenameParts = file.getOriginalFilename().split("\\.");
 		String fileType = filenameParts[filenameParts.length - 1].toUpperCase();
 
@@ -52,29 +55,36 @@ public class InvoiceController {
 
 					records.put(keyCount++, record);
 				}
-				invoiceService.updateInvoice(records);
+				resp = invoiceService.updateInvoice(records);
 
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
 		}
 
-		return "processed : " + new Date();
+		return resp;
 	}
 
 	@GetMapping("/getAll")
-	public String getAll() {
+	public List<Map<String, String>> getAll() {
 		return invoiceService.getAllInvoices();
 	}
 
 	@GetMapping("/getInvoice/{invoiceNumber}")
-	public String get(@PathVariable(required = true) String invoiceNumber) {
+	public JSONObject get(@PathVariable(required = true) String invoiceNumber) {
 		return invoiceService.getSingleInvoice(invoiceNumber);
 	}
 
 	@PostMapping(path = "/validateInvoice", consumes = "application/json", produces = { "application/json" })
 	public String validate(@RequestBody String payload) {
 		return invoiceService.validateInvoice(payload);
+	}
+
+	@GetMapping("g")
+	public JSONObject g() {
+		JSONObject jo = new JSONObject();
+		jo.put("response", "success");
+		return jo;
 	}
 
 }

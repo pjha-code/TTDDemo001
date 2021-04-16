@@ -1,6 +1,9 @@
 package com.ttd.demo001.service;
 
 import java.net.HttpURLConnection;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 
 import org.json.simple.JSONArray;
@@ -20,6 +23,7 @@ import com.ttd.demo001.util.InvoiceServiceName;
 import com.ttd.demo001.util.JSONHelper;
 
 @Service
+@SuppressWarnings("unchecked")
 public class InvoiceServiceImpl implements InvoiceService {
 
 	@Value("${resource_url}")
@@ -39,10 +43,9 @@ public class InvoiceServiceImpl implements InvoiceService {
 	@Autowired
 	private JSONParser parser;
 
-	@SuppressWarnings("unchecked")
 	@Override
-	public String updateInvoice(Map<Integer, String> records) {
-
+	public JSONObject updateInvoice(Map<Integer, String> records) {
+		JSONObject respoObject = new JSONObject();
 		CTRInvoiceServiceLog serviceLog = new CTRInvoiceServiceLog(InvoiceServiceName.UPDATE_INVOICE, null, updatedBy,
 				null, (short) records.size(), createdBy);
 		invoiceServiceLoggerRepo.save(serviceLog);
@@ -81,6 +84,7 @@ public class InvoiceServiceImpl implements InvoiceService {
 						conn1.setRequestProperty("X-HTTP-Method-Override", "PATCH");
 						String updateInvoiceResp = invoiceRespGenService
 								.setRequestPayloadForResponse(recordValue.get(key).toString(), conn1, cloudRequestLog);
+						respoObject.put("response", parser.parse(updateInvoiceResp));
 						ctrCloudRequestLog2.setResponsePayload(updateInvoiceResp);
 						cloudRequestLoggerRepo.save(ctrCloudRequestLog2);
 					} catch (ParseException e) {
@@ -92,36 +96,66 @@ public class InvoiceServiceImpl implements InvoiceService {
 
 		});
 
-		return null;
+		return respoObject;
 	}
 
 	@Override
-	public String getAllInvoices() {
+	public List<Map<String, String>> getAllInvoices() {
+		JSONObject resp = new JSONObject();
+		resp.put("error", "server response never received");
 		CTRInvoiceServiceLog serviceLog = new CTRInvoiceServiceLog(InvoiceServiceName.GET_ALL_INVOICE, null, updatedBy,
 				null, (short) 0, createdBy);
 		invoiceServiceLoggerRepo.save(serviceLog);
 
-		HttpURLConnection conn1 = conn.getConnection(HTTPMethods.HTTP_GET, resourceUrl);
+		HttpURLConnection conn1 = conn.getConnection(HTTPMethods.HTTP_GET, resourceUrl + "?limit=5");
 		CTRCloudRequestLog cloudRequestLog = new CTRCloudRequestLog(serviceLog, "INVOICE", HTTPMethods.HTTP_GET, null,
 				createdBy, updatedBy);
 		cloudRequestLoggerRepo.save(cloudRequestLog);
-		return invoiceRespGenService.getResponsePayload(conn1, cloudRequestLog);
+
+		String respPayload = invoiceRespGenService.getResponsePayload(conn1, cloudRequestLog);
+		System.out.println(respPayload);
+
+		try {
+			resp = (JSONObject) parser.parse(respPayload);
+		} catch (ParseException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+		List<Map<String, String>> tempList = new LinkedList<>();
+		for (Object jo : (JSONArray) resp.get("items")) {
+			JSONObject temp = (JSONObject) jo;
+			Map<String, String> t = new HashMap<>();
+			t.put("InvoiceNumber", (String) temp.get("InvoiceNumber"));
+			t.put("CreationDate", (String) temp.get("CreationDate"));
+			t.put("CreatedBy", (String) temp.get("CreatedBy"));
+			tempList.add(t);
+		}
+
+		return tempList;
 	}
 
 	@Override
-	public String getSingleInvoice(String invoiceNumber) {
+	public JSONObject getSingleInvoice(String invoiceNumber) {
+		JSONObject responseObject = null;
 		CTRInvoiceServiceLog serviceLog = new CTRInvoiceServiceLog(InvoiceServiceName.GET_SINGLE_INVOICE, invoiceNumber,
 				updatedBy, null, (short) 0, createdBy);
 		invoiceServiceLoggerRepo.save(serviceLog);
 
-		String updatedResourceURL = resourceUrl + "/" + invoiceNumber;
+		String updatedResourceURL = resourceUrl + "?q=InvoiceNumber=" + invoiceNumber;
 		HttpURLConnection conn1 = conn.getConnection(HTTPMethods.HTTP_GET, updatedResourceURL);
 		CTRCloudRequestLog cloudRequestLog = new CTRCloudRequestLog(serviceLog, "INVOICE", HTTPMethods.HTTP_GET,
 				invoiceNumber, createdBy, updatedBy);
 		cloudRequestLoggerRepo.save(cloudRequestLog);
-		return invoiceRespGenService.getResponsePayload(conn1, cloudRequestLog);
+		try {
+			responseObject = (JSONObject) parser.parse(invoiceRespGenService.getResponsePayload(conn1, cloudRequestLog));
+		} catch (ParseException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}	
+		return responseObject;
 	}
-
+	
 	@Override
 	public String validateInvoice(String requestObject) {
 		CTRInvoiceServiceLog serviceLog = new CTRInvoiceServiceLog(InvoiceServiceName.VALIDATE_INVOICE, null, updatedBy,

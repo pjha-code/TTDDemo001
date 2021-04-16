@@ -36,13 +36,14 @@ public class InvoiceResponseGeneratorServiceImpl implements InvoiceResponseGener
 			InputStreamReader reader = new InputStreamReader(in);
 			BufferedReader buffReader = new BufferedReader(reader);
 			StringBuffer sb = new StringBuffer();
-			while (buffReader.ready()) {
-				sb.append(buffReader.readLine());
+			String str;
+			while ((str = buffReader.readLine()) != null) {
+				sb.append(str);
 			}
 			responseStr = sb.toString();
 //			System.out.println(responseStr);
 			cloudRequestLog.setResponseCode((short) conn.getResponseCode());
-			cloudRequestLog.setResponsePayload(responseStr);
+//			cloudRequestLog.setResponsePayload(responseStr);
 			cloudRequestLog.setLastUpdateDate(new Date());
 			cloudRequestLoggerRepo.save(cloudRequestLog);
 		} catch (IOException e) {
