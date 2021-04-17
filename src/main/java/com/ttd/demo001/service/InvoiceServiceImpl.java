@@ -44,49 +44,84 @@ public class InvoiceServiceImpl implements InvoiceService {
 	private JSONParser parser;
 
 	@Override
-	public JSONObject updateInvoice(Map<Integer, String> records) {
+	public JSONObject updateInvoice(Map<Integer, String> fileRows) {
 		JSONObject respoObject = new JSONObject();
+		List<JSONObject> newResponseList = new LinkedList<>();
+		respoObject.put("response", newResponseList);
+
+		if (fileRows.size() > 0) {
+			List<String> tableHead = new LinkedList<>();
+			for (String header : fileRows.get(0).split(",")) {
+				tableHead.add(header);
+			}
+			JSONObject tableHeaderObj = new JSONObject();
+			tableHeaderObj.put("valid", true);
+			tableHeaderObj.put("response", tableHead);
+			newResponseList.add(tableHeaderObj);
+		}
+
 		CTRInvoiceServiceLog serviceLog = new CTRInvoiceServiceLog(InvoiceServiceName.UPDATE_INVOICE, null, updatedBy,
-				null, (short) records.size(), createdBy);
+				null, (short) fileRows.size(), createdBy);
 		invoiceServiceLoggerRepo.save(serviceLog);
 
-		records.keySet().stream().forEach((recordKey) -> {
+		fileRows.keySet().stream().forEach((fileRowId) -> {
 //			System.out.println(records.get(recordKey));
-			if (recordKey != 0) {
-				JSONObject recordValue = JSONHelper.createJSONString(records.get(0), records.get(recordKey));
-//				System.out.println(recordValue);
+			if (fileRowId != 0) {
+				JSONObject payloadForUpdateRequest = JSONHelper.createJSONString(fileRows.get(0),
+						fileRows.get(fileRowId));
+//				System.out.println(payloadForUpdateRequest);
 				CTRCloudRequestLog cloudRequestLog = new CTRCloudRequestLog(serviceLog, "INVOICE", HTTPMethods.HTTP_GET,
 						null, createdBy, updatedBy);
 
-				recordValue.keySet().stream().forEach((key) -> {
+				payloadForUpdateRequest.keySet().stream().forEach((invoiceNumberKey) -> {
+					JSONObject currentResponseObject = new JSONObject();
+
 					try {
 						HttpURLConnection conn2 = conn.getConnection(HTTPMethods.HTTP_GET,
-								resourceUrl + "?q=InvoiceNumber=" + key);
-						cloudRequestLog.setRequestPayload("?q=InvoiceNumber=" + key);
+								resourceUrl + "?q=InvoiceNumber=" + invoiceNumberKey);
+						cloudRequestLog.setRequestPayload("?q=InvoiceNumber=" + invoiceNumberKey);
 
 						String getInvoiceResp = invoiceRespGenService.getResponsePayload(conn2, cloudRequestLog);
 						JSONObject invoiceJsonObject = (JSONObject) parser.parse(getInvoiceResp);
 						cloudRequestLog.setResponsePayload(invoiceJsonObject.toJSONString());
 						cloudRequestLoggerRepo.save(cloudRequestLog);
 						JSONArray itemsArray = (JSONArray) invoiceJsonObject.get("items");
-						JSONObject firstItem = (JSONObject) itemsArray.get(0);
+						JSONObject firstItem = itemsArray.size() > 0 ? (JSONObject) itemsArray.get(0) : null;
 
-						String invoiceId = firstItem.get("InvoiceId").toString();
-						JSONObject updateServicePayload = (JSONObject) recordValue.get(key);
+						if (firstItem != null) {
+							String invoiceId = firstItem.get("InvoiceId").toString();
+							JSONObject updateServicePayload = (JSONObject) payloadForUpdateRequest
+									.get(invoiceNumberKey);
 
-						CTRCloudRequestLog ctrCloudRequestLog2 = new CTRCloudRequestLog(serviceLog, "UPDATE INVOICE",
-								HTTPMethods.HTTP_POST, updateServicePayload.toJSONString(), createdBy, updatedBy);
-						cloudRequestLoggerRepo.save(ctrCloudRequestLog2);
+							CTRCloudRequestLog ctrCloudRequestLog2 = new CTRCloudRequestLog(serviceLog,
+									"UPDATE INVOICE", HTTPMethods.HTTP_POST, updateServicePayload.toJSONString(),
+									createdBy, updatedBy);
+							cloudRequestLoggerRepo.save(ctrCloudRequestLog2);
 
-						HttpURLConnection conn1 = conn.getConnection(HTTPMethods.HTTP_POST,
-								resourceUrl + "/" + invoiceId);
-						conn1.setRequestProperty("Accept", "application/vnd.oracle.adf.resourceitem+json");
-						conn1.setRequestProperty("X-HTTP-Method-Override", "PATCH");
-						String updateInvoiceResp = invoiceRespGenService
-								.setRequestPayloadForResponse(recordValue.get(key).toString(), conn1, cloudRequestLog);
-						respoObject.put("response", parser.parse(updateInvoiceResp));
-						ctrCloudRequestLog2.setResponsePayload(updateInvoiceResp);
-						cloudRequestLoggerRepo.save(ctrCloudRequestLog2);
+							HttpURLConnection conn1 = conn.getConnection(HTTPMethods.HTTP_POST,
+									resourceUrl + "/" + invoiceId);
+							conn1.setRequestProperty("Accept", "application/vnd.oracle.adf.resourceitem+json");
+							conn1.setRequestProperty("X-HTTP-Method-Override", "PATCH");
+							String updateInvoiceResp = invoiceRespGenService.setRequestPayloadForResponse(
+									payloadForUpdateRequest.get(invoiceNumberKey).toString(), conn1, cloudRequestLog);
+							JSONObject jo = (JSONObject) parser.parse(updateInvoiceResp);
+
+							List<String> tableRow = new LinkedList<>();
+							for (String header : fileRows.get(0).split(",")) {
+								tableRow.add((String) jo.get(header));
+							}
+
+							currentResponseObject.put("response",
+									updateInvoiceResp != null ? tableRow : "Unable to receive response");
+							currentResponseObject.put("valid", true);
+							ctrCloudRequestLog2.setResponsePayload(updateInvoiceResp);
+							cloudRequestLoggerRepo.save(ctrCloudRequestLog2);
+						} else {
+							currentResponseObject.put("valid", false);
+							currentResponseObject.put("response",
+									"No items were found for Invoice Number : " + invoiceNumberKey);
+						}
+						newResponseList.add(currentResponseObject);
 					} catch (ParseException e) {
 						e.printStackTrace();
 					}
@@ -96,6 +131,7 @@ public class InvoiceServiceImpl implements InvoiceService {
 
 		});
 
+		System.out.println(respoObject.toJSONString());
 		return respoObject;
 	}
 
@@ -148,14 +184,15 @@ public class InvoiceServiceImpl implements InvoiceService {
 				invoiceNumber, createdBy, updatedBy);
 		cloudRequestLoggerRepo.save(cloudRequestLog);
 		try {
-			responseObject = (JSONObject) parser.parse(invoiceRespGenService.getResponsePayload(conn1, cloudRequestLog));
+			responseObject = (JSONObject) parser
+					.parse(invoiceRespGenService.getResponsePayload(conn1, cloudRequestLog));
 		} catch (ParseException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-		}	
+		}
 		return responseObject;
 	}
-	
+
 	@Override
 	public String validateInvoice(String requestObject) {
 		CTRInvoiceServiceLog serviceLog = new CTRInvoiceServiceLog(InvoiceServiceName.VALIDATE_INVOICE, null, updatedBy,
