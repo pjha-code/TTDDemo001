@@ -143,7 +143,7 @@ public class InvoiceServiceImpl implements InvoiceService {
 				null, (short) 0, createdBy);
 		invoiceServiceLoggerRepo.save(serviceLog);
 
-		HttpURLConnection conn1 = conn.getConnection(HTTPMethods.HTTP_GET, resourceUrl + "?limit=5");
+		HttpURLConnection conn1 = conn.getConnection(HTTPMethods.HTTP_GET, resourceUrl + "?limit=15");
 		CTRCloudRequestLog cloudRequestLog = new CTRCloudRequestLog(serviceLog, "INVOICE", HTTPMethods.HTTP_GET, null,
 				createdBy, updatedBy);
 		cloudRequestLoggerRepo.save(cloudRequestLog);
