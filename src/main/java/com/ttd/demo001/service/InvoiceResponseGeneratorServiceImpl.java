@@ -57,6 +57,7 @@ public class InvoiceResponseGeneratorServiceImpl implements InvoiceResponseGener
 	public String setRequestPayloadForResponse(String requestPayload, HttpURLConnection conn,
 			CTRCloudRequestLog cloudRequestLog) {
 		try {
+			System.out.println(requestPayload);
 			conn.setDoOutput(true);
 			conn.setRequestProperty("Content-Type", "application/json");
 			OutputStream os = conn.getOutputStream();

@@ -104,16 +104,24 @@ public class InvoiceServiceImpl implements InvoiceService {
 							conn1.setRequestProperty("X-HTTP-Method-Override", "PATCH");
 							String updateInvoiceResp = invoiceRespGenService.setRequestPayloadForResponse(
 									payloadForUpdateRequest.get(invoiceNumberKey).toString(), conn1, cloudRequestLog);
-							JSONObject jo = (JSONObject) parser.parse(updateInvoiceResp);
+							System.out.println(updateInvoiceResp);
+							try {
+								JSONObject jo = (JSONObject) parser.parse(updateInvoiceResp);
 
-							List<String> tableRow = new LinkedList<>();
-							for (String header : fileRows.get(0).split(",")) {
-								tableRow.add((String) jo.get(header));
+								List<String> tableRow = new LinkedList<>();
+								for (String header : fileRows.get(0).split(",")) {
+									tableRow.add((String) jo.get(header));
+								}
+
+								currentResponseObject.put("response",
+										updateInvoiceResp != null ? tableRow : "Unable to receive response");
+								currentResponseObject.put("valid", true);	
+							}catch(ParseException e) {
+								currentResponseObject.put("valid", false);
+								currentResponseObject.put("response",
+										updateInvoiceResp+" - " + invoiceNumberKey);
 							}
-
-							currentResponseObject.put("response",
-									updateInvoiceResp != null ? tableRow : "Unable to receive response");
-							currentResponseObject.put("valid", true);
+							
 							ctrCloudRequestLog2.setResponsePayload(updateInvoiceResp);
 							cloudRequestLoggerRepo.save(ctrCloudRequestLog2);
 						} else {
