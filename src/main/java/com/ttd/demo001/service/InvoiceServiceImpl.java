@@ -115,19 +115,18 @@ public class InvoiceServiceImpl implements InvoiceService {
 
 								currentResponseObject.put("response",
 										updateInvoiceResp != null ? tableRow : "Unable to receive response");
-								currentResponseObject.put("valid", true);	
-							}catch(ParseException e) {
+								currentResponseObject.put("valid", true);
+							} catch (ParseException e) {
 								currentResponseObject.put("valid", false);
-								currentResponseObject.put("response",
-										updateInvoiceResp+" - " + invoiceNumberKey);
+								currentResponseObject.put("response", invoiceNumberKey + " : " + updateInvoiceResp);
 							}
-							
+
 							ctrCloudRequestLog2.setResponsePayload(updateInvoiceResp);
 							cloudRequestLoggerRepo.save(ctrCloudRequestLog2);
 						} else {
 							currentResponseObject.put("valid", false);
 							currentResponseObject.put("response",
-									"No items were found for Invoice Number : " + invoiceNumberKey);
+									invoiceNumberKey + " : No items were found for Invoice Number");
 						}
 						newResponseList.add(currentResponseObject);
 					} catch (ParseException e) {
